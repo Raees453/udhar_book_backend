@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "User" ALTER COLUMN "to_get" SET DEFAULT 0.0,
+ALTER COLUMN "to_give" SET DEFAULT 0.0;
