@@ -1,9 +1,18 @@
 const express = require('express');
-const {PrismaClient} = require('@prisma/client');
+const { PrismaClient } = require('@prisma/client');
+
+// List of TODOs
+// TODO Make the Global Error Handler Functional
+// TODO Make the AsyncHandler Make sure that the global error handler is working
+// TODO Make sure, server is going to disconnect from postrgresql before shutting down
+// TODO Define Debug, Development Configurations if needed
+// TODO Research on how to test your NodeJS Project
+// TODO Make sure all the authentication APIs are done by 12th Feb Max.
 
 const globalErrorHandler = require('./utils/global_error_handler');
 
 const routes = require('./routes');
+const utils = require('./utils');
 
 const app = express();
 
@@ -13,7 +22,10 @@ app.use(routes);
 
 const prisma = new PrismaClient();
 
-prisma.$connect().then(() => console.log('Connected to Database!')).catch(() => console.log('Could not connect to database'));
+prisma
+  .$connect()
+  .then(() => console.log('Connected to Database!'))
+  .catch(() => console.log('Could not connect to database'));
 
 app.use(globalErrorHandler);
 
@@ -21,4 +33,6 @@ const PORT = process.env.PORT || 80;
 
 app.listen(PORT, () => {
   console.log(`Server Started at PORT: ${PORT}`);
+
+  process.on('SIGINT', utils.disconnectFromPrismaOnShutdown);
 });
