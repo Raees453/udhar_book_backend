@@ -1,5 +1,13 @@
 const express = require('express');
+const morgan = require('morgan');
+
+const Exception = require('./utils/exception');
+
 const { PrismaClient } = require('@prisma/client');
+
+// LIST of things to learn
+// TODO 1. Learn about Prisma Middlewares
+// TODO 2.
 
 // List of TODOs
 // TODO Make the Global Error Handler Functional
@@ -18,7 +26,13 @@ const app = express();
 
 app.use(express.json());
 
+app.use(morgan('dev'));
+
 app.use(routes);
+
+app.all('*', (req, res, next) => {
+  next(new Exception('No route found', 404));
+});
 
 const prisma = new PrismaClient();
 
@@ -33,6 +47,6 @@ const PORT = process.env.PORT || 80;
 
 app.listen(PORT, () => {
   console.log(`Server Started at PORT: ${PORT}`);
-
-  process.on('SIGINT', utils.disconnectFromPrismaOnShutdown);
 });
+
+process.on('SIGINT', utils.disconnectFromPrismaOnShutdown);

@@ -9,4 +9,6 @@ exports.disconnectFromPrismaOnShutdown = async function () {
   } catch (error) {
     console.error('Error disconnecting from Prisma:', error);
   }
+
+  process.exit(0);
 };
