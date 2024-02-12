@@ -12,8 +12,11 @@
   "author": "Ali Wajdan Pasha",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "passport": "^0.7.0",
     "pg": "^8.11.3"
   },
   "devDependencies": {

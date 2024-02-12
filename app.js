@@ -10,9 +10,6 @@ const { PrismaClient } = require('@prisma/client');
 // TODO 2.
 
 // List of TODOs
-// TODO Make the Global Error Handler Functional
-// TODO Make the AsyncHandler Make sure that the global error handler is working
-// TODO Make sure, server is going to disconnect from postrgresql before shutting down
 // TODO Define Debug, Development Configurations if needed
 // TODO Research on how to test your NodeJS Project
 // TODO Make sure all the authentication APIs are done by 12th Feb Max.
