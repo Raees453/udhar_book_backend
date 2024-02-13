@@ -149,7 +149,6 @@ exports.authorise = asyncHandler(async (req, res, next) => {
   // TODO need to check if the user has already applied for change of password
   // TODO need to check if the jwt is been expired
   // TODO need to check if the password was created before the jwt was created
-  // TODO
 
   const userId = result.id;
 

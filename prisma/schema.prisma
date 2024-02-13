@@ -13,15 +13,48 @@ model User {
   email               String?   @unique
   phone               String?   @unique
   dob                 DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
   email_verified      Boolean   @default(false)
   phone_verified      Boolean?  @default(false)
   password            String?
   password_changed_at DateTime?
   profie              String?
   bio                 String?
-  to_give             Int?      @default(0)
-  to_get              Int?      @default(0)
+  to_give             Int       @default(0)
+  to_get              Int       @default(0)
   token               String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  contacts Contact[]
 }
+
+model Contact {
+  id        String   @id @default(uuid())
+  name      String
+  bio       String?
+  email     String?
+  phone     String?
+  amount    Int      @default(0)
+  profile   String?
+  owner     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  User User @relation(fields: [owner], references: [id])
+}
+
+// model Transaction {
+//   id          String   @id @default(uuid())
+//   description String?
+//   amount      Int
+//   attachment  String?
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//   ownerId     String
+//   tenantId    String
+//
+//   Owner     Contact  @relation(fields: [ownerId], references: [id], name: "Transaction Owner")
+//   Tenant    Contact  @relation(fields: [tenantId], references: [id], name: "Transaction Tenant")
+//   Contact   Contact? @relation(fields: [contactId], references: [id])
+//   contactId String?
+// }

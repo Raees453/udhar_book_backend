@@ -1,16 +1,17 @@
-// routes/index.js
 const express = require('express');
+
 const router = express.Router();
 
 const authRoutes = require('./auth_routes');
 
-// TODO add
+const contactsRoutes = require('./contacts_routes');
+
+const transactionsRoutes = require('./transactions_route');
+
 router.use('/auth', authRoutes);
 
-router.get('/', (req, res, next) =>
-  res.status(200).json({
-    success: true,
-  }),
-);
+router.use('/contacts', contactsRoutes);
+
+router.use('/transactions', transactionsRoutes);
 
 module.exports = router;
