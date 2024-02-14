@@ -11,7 +11,7 @@ exports.getAllContacts = asyncHandler(async (req, res, next) => {
 
   const contacts = await prisma.contact.findMany({
     where: {
-      owner: user.id,
+      OR: [{ ownerId: user.id }],
     },
   });
 
@@ -30,16 +30,46 @@ exports.addContact = asyncHandler(async (req, res, next) => {
     return next(new Exception('Please provide name', 403));
   }
 
-  const contact = await prisma.contact.create({
-    data: {
-      name,
-      bio,
-      email,
-      phone,
-      profile,
-      owner: user.id,
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      OR: [
+        email !== null ? { email } : null,
+        phone !== null ? { phone } : null,
+      ].filter(Boolean),
     },
   });
+
+  const isLocalContact = existingUser == null;
+
+  let data = {
+    name,
+    bio,
+    email,
+    phone,
+    profile,
+    ownerId: user.id,
+  };
+
+  let contact;
+
+  if (isLocalContact) {
+    contact = await createContact(data);
+  } else {
+    data.id = existingUser.id;
+
+    contact = await createContact(data);
+
+    data = {
+      name: user.name,
+      bio: user.bio,
+      email: user.email,
+      phone: user.phone,
+      profile: user.profile,
+      ownerId: contact.id,
+    };
+
+    const tenantContact = await createContact(data);
+  }
 
   return res.status(200).json({
     success: true,
@@ -92,3 +122,7 @@ exports.deleteContact = asyncHandler(async (req, res, next) => {
     success: true,
   });
 });
+
+const createContact = async (data) => {
+  return prisma.contact.create({ data });
+};

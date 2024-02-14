@@ -15,8 +15,8 @@ exports.getTransactions = asyncHandler(async (req, res, next) => {
 
   const transactions = await prisma.transaction.findMany({
     where: {
-      owner: user.id,
-      tenant: id,
+      ownerId: user.id,
+      tenantId: id,
     },
   });
 
@@ -33,19 +33,17 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
 
   if (!id) return next(new Exception('Please provide id', 403));
 
-  if (!id || !amount) {
+  if (!amount) {
     return next(new Exception('Please provide all the details', 403));
   }
-
-  date ??= Date.now();
 
   const transaction = await prisma.transaction.create({
     data: {
       amount,
       description,
       attachment,
-      owner: user.id,
-      tenant: id,
+      ownerId: user.id,
+      tenantId: id,
     },
   });
 
@@ -57,4 +55,30 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
 
 exports.editTransaction = asyncHandler(async (req, res, next) => {});
 
-exports.deleteTransaction = asyncHandler(async (req, res, next) => {});
+exports.deleteTransaction = asyncHandler(async (req, res, next) => {
+  const user = req.user;
+
+  let { id } = req.body;
+
+  if (!id) return next(new Exception('Please provide id', 403));
+
+  const transaction = await prisma.transaction.findUnique({ where: { id } });
+
+  if (!transaction) {
+    return next(new Exception('No Transaction Found', 404));
+  }
+
+  if (transaction.ownerId !== user.id) {
+    return next(
+      new Exception('You are not authorised to delete this transaction', 403),
+    );
+  }
+
+  const deletedTransaction = await prisma.transaction.delete({
+    where: { id },
+  });
+
+  return res.status(204).json({
+    success: true,
+  });
+});

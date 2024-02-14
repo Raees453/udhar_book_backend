@@ -3,7 +3,7 @@ const Exception = require('./exception');
 module.exports = (err, req, res, next) => {
   console.error('Global Error Handler!');
 
-  console.error(err);
+  if (process.env.ENVIRONMENT === 'development') console.error(err);
 
   err = handleError(err);
 
@@ -21,6 +21,8 @@ const handleError = (err) => {
 
   if (err.code === 'P2002') {
     return handleDuplicateDataError(err);
+  } else if (err.code === 'P2025') {
+    return handleInvalidForeignKeyValueError(err);
   }
 
   if (typeof code !== 'number') {
@@ -35,3 +37,6 @@ const handleError = (err) => {
 
 const handleDuplicateDataError = (err) =>
   new Exception(`Property ${err.meta.target[0]} already exists`, 400);
+
+const handleInvalidForeignKeyValueError = (err) =>
+  new Exception(`Property ${err.meta.modelName} does not exists`, 400);

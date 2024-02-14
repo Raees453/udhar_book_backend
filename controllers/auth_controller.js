@@ -168,6 +168,9 @@ const findUserByPhoneOrEmail = async function (phone, email) {
     where: {
       OR: [{ email }, { phone }],
     },
+    include: {
+      contacts: true,
+    },
   });
 };
 
