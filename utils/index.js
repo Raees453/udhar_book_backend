@@ -6,7 +6,7 @@ exports.disconnectFromPrismaOnShutdown = async function () {
   try {
     await prisma.transaction.deleteMany();
     await prisma.contact.deleteMany();
-    await prisma.user.deleteMany();
+    // await prisma.user.deleteMany();
 
     await prisma.$disconnect();
     console.log('Disconnected from Prisma.');

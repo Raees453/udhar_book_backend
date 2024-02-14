@@ -7,10 +7,12 @@ const router = express.Router();
 
 router.use(authController.authorise);
 
+router.use(contactsController.checkForLocalContact);
+
 router
   .route('/')
   .get(contactsController.getAllContacts)
-  .post(contactsController.addContact)
+  .post(contactsController.doesContactExist, contactsController.addContact)
   .patch(contactsController.editContact)
   .delete(contactsController.deleteContact);
 

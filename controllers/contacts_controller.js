@@ -10,9 +10,7 @@ exports.getAllContacts = asyncHandler(async (req, res, next) => {
   const user = req.user;
 
   const contacts = await prisma.contact.findMany({
-    where: {
-      OR: [{ ownerId: user.id }],
-    },
+    where: { ownerId: user.id },
   });
 
   return res.status(200).json({
@@ -22,7 +20,7 @@ exports.getAllContacts = asyncHandler(async (req, res, next) => {
 });
 
 exports.addContact = asyncHandler(async (req, res, next) => {
-  const user = req.user;
+  const { user, contact } = req;
 
   const { name, bio, email, phone, profile } = req.body;
 
@@ -30,16 +28,7 @@ exports.addContact = asyncHandler(async (req, res, next) => {
     return next(new Exception('Please provide name', 403));
   }
 
-  const existingUser = await prisma.user.findFirst({
-    where: {
-      OR: [
-        email !== null ? { email } : null,
-        phone !== null ? { phone } : null,
-      ].filter(Boolean),
-    },
-  });
-
-  const isLocalContact = existingUser == null;
+  console.log('Check for Local Account', contact);
 
   let data = {
     name,
@@ -50,14 +39,16 @@ exports.addContact = asyncHandler(async (req, res, next) => {
     ownerId: user.id,
   };
 
-  let contact;
+  console.log('Data', data);
 
-  if (isLocalContact) {
-    contact = await createContact(data);
+  let newContact;
+
+  if (!contact) {
+    newContact = await createContact(data);
   } else {
-    data.id = existingUser.id;
+    data.id = contact.id;
 
-    contact = await createContact(data);
+    newContact = await createContact(data);
 
     data = {
       name: user.name,
@@ -65,15 +56,17 @@ exports.addContact = asyncHandler(async (req, res, next) => {
       email: user.email,
       phone: user.phone,
       profile: user.profile,
-      ownerId: contact.id,
+      ownerId: newContact.id,
     };
+
+    console.log('New Data', data);
 
     const tenantContact = await createContact(data);
   }
 
   return res.status(200).json({
     success: true,
-    data: contact,
+    data: newContact,
   });
 });
 
@@ -121,6 +114,37 @@ exports.deleteContact = asyncHandler(async (req, res, next) => {
   return res.status(204).json({
     success: true,
   });
+});
+
+exports.checkForLocalContact = asyncHandler(async (req, res, next) => {
+  const { id, email, phone } = req.body;
+
+  req.contact = await prisma.user.findFirst({
+    where: {
+      OR: [
+        email !== null ? { email } : null,
+        phone !== null ? { phone } : null,
+        id !== null ? { id } : null,
+      ].filter(Boolean),
+    },
+  });
+
+  console.log('Local Contact', req.contact);
+  next();
+});
+
+exports.doesContactExist = asyncHandler(async (req, res, next) => {
+  const { email, phone } = req.body;
+
+  const contact = await prisma.contact.findFirst({
+    where: { OR: [{ email }, { phone }].filter(Boolean) },
+  });
+
+  console.log(contact);
+
+  if (contact) return next(new Exception('Contact already exists', 403));
+
+  next();
 });
 
 const createContact = async (data) => {

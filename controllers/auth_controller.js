@@ -156,7 +156,11 @@ exports.authorise = asyncHandler(async (req, res, next) => {
     where: { id: userId },
   });
 
-  if (user != null) req.user = user;
+  if (!user) {
+    return next(new Exception('No Related account found for login', 404));
+  }
+  
+  req.user = user;
 
   next();
 });

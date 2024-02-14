@@ -13,41 +13,81 @@ exports.getTransactions = asyncHandler(async (req, res, next) => {
 
   if (!id) return next(new Exception('Please provide id', 403));
 
+  console.log('User id', user.id, 'Id', id);
+
   const transactions = await prisma.transaction.findMany({
     where: {
-      ownerId: user.id,
-      tenantId: id,
+      OR: [
+        { ownerId: user.id, tenantId: id },
+        { ownerId: id, tenantId: user.id },
+      ],
+    },
+  });
+
+  const amountttt = await prisma.transaction.aggregate({
+    where: {
+      ownerId: { equals: user.id },
+      tenantId: { equals: id },
+    },
+
+    _sum: {
+      amount: true,
     },
   });
 
   return res.status(200).json({
     status: true,
+    amount: amountttt,
     data: transactions,
   });
 });
 
 exports.createTransaction = asyncHandler(async (req, res, next) => {
-  const user = req.user;
+  const { user, contact } = req;
 
   let { id, amount, description, date, attachment } = req.body;
 
-  if (!id) return next(new Exception('Please provide id', 403));
+  if (!id) {
+    return next(new Exception('Please provide id', 403));
+  }
 
   if (!amount) {
     return next(new Exception('Please provide all the details', 403));
   }
 
-  const transaction = await prisma.transaction.create({
-    data: {
-      amount,
-      description,
-      attachment,
-      ownerId: user.id,
-      tenantId: id,
+  const data = {
+    amount,
+    description,
+    attachment,
+    ownerId: user.id,
+    tenantId: id,
+  };
+
+  console.log('Forward is been called', data);
+
+  const transaction = await createTransaction(data);
+
+  if (contact) {
+    data.amount *= -1;
+    data.ownerId = contact.id;
+    data.tenantId = user.id;
+
+    const reverseTransaction = await createTransaction(data);
+  }
+
+  const amountttt = await prisma.transaction.aggregate({
+    where: {
+      ownerId: { equals: user.id },
+      tenantId: { equals: id },
+    },
+
+    sum: {
+      amount: true,
     },
   });
 
   return res.status(200).json({
+    amount: amountttt,
     status: true,
     data: transaction,
   });
@@ -82,3 +122,7 @@ exports.deleteTransaction = asyncHandler(async (req, res, next) => {
     success: true,
   });
 });
+
+const createTransaction = (data) => {
+  return prisma.transaction.create({ data });
+};
