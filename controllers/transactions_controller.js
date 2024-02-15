@@ -69,8 +69,10 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
 
   if (contact) {
     data.amount *= -1;
-    data.ownerId = contact.id;
-    data.tenantId = user.id;
+    data.tenantId = data.ownerId;
+    data.ownerId = user.id;
+
+    console.log('Reverse is been called', data);
 
     const reverseTransaction = await createTransaction(data);
   }
@@ -81,7 +83,7 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
       tenantId: { equals: id },
     },
 
-    sum: {
+    _sum: {
       amount: true,
     },
   });
@@ -123,6 +125,4 @@ exports.deleteTransaction = asyncHandler(async (req, res, next) => {
   });
 });
 
-const createTransaction = (data) => {
-  return prisma.transaction.create({ data });
-};
+const createTransaction = (data) => prisma.transaction.create({ data });

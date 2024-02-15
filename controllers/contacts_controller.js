@@ -51,6 +51,7 @@ exports.addContact = asyncHandler(async (req, res, next) => {
     newContact = await createContact(data);
 
     data = {
+      id: user.id,
       name: user.name,
       bio: user.bio,
       email: user.email,
@@ -79,17 +80,11 @@ exports.editContact = asyncHandler(async (req, res, next) => {
     return next(new Exception('Please provide contact id', 403));
   }
 
+  const data = { name, bio, email, phone, profile };
+
   const contact = await prisma.contact.update({
-    where: {
-      id,
-    },
-    data: {
-      name,
-      bio,
-      email,
-      phone,
-      profile,
-    },
+    where: { id },
+    data,
   });
 
   return res.status(200).json({
@@ -104,9 +99,7 @@ exports.deleteContact = asyncHandler(async (req, res, next) => {
   if (!id) return next(new Exception('Please provide an id', 403));
 
   const contact = await prisma.contact.delete({
-    where: {
-      id,
-    },
+    where: { id },
   });
 
   if (!contact) return next(new Exception('No Contact Found', 404));

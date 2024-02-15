@@ -10,6 +10,8 @@ const prisma = new PrismaClient();
 
 const asyncHandler = require('../utils/async_handler');
 
+const MAX_PASSWORD_SALT = 10;
+
 exports.signup = asyncHandler(async (req, res, next) => {
   let { name, email, phone, password } = req.body;
 
@@ -21,7 +23,7 @@ exports.signup = asyncHandler(async (req, res, next) => {
     return next(new Exception('Please provide password', 400));
   }
 
-  password = await bcrypt.hash(password, 10);
+  password = await bcrypt.hash(password, MAX_PASSWORD_SALT);
 
   const result = await prisma.user.create({
     data: {
@@ -104,31 +106,36 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
 });
 
 exports.resetPassword = asyncHandler(async (req, res, next) => {
-  const { email, phone } = req.body;
+  let { currentPassword, newPassword } = req.body;
+  
+  const { user } = req;
 
-  if (!containsPhoneOrEmail(phone, email)) {
-    return next(new Exception('Please provide phone or email', 400));
+  if (!currentPassword || !newPassword) {
+    return next(new Exception('Please provide new and old password', 400));
   }
 
-  const user = await findUserByPhoneOrEmail(phone, email);
-
-  if (!user) {
-    return next(new Exception('No Account Found', 404));
+  if (currentPassword === newPassword) {
+    return next(
+      new Exception('Current Password cannot be same as Old Password', 400),
+    );
   }
 
-  let message = 'An email has been sent with the OTP';
+  const isPasswordSame = await bcrypt.compare(currentPassword, user.password);
 
-  if (phone) {
-    // send an OTP to phone number
-
-    message = 'OTP sent to registered phone number';
-  } else {
-    // send an email to email
+  if (!isPasswordSame) {
+    return next(new Exception('Current Password is not valid', 400));
   }
+
+  newPassword = await bcrypt.hash(newPassword, MAX_PASSWORD_SALT);
+
+  const newUser = await prisma.user.update({
+    where: { id: user.id },
+    data: { password: newPassword, password_changed_at: new Date() },
+  });
 
   return res.status(200).json({
     status: true,
-    message,
+    data: newUser,
   });
 });
 
@@ -159,7 +166,7 @@ exports.authorise = asyncHandler(async (req, res, next) => {
   if (!user) {
     return next(new Exception('No Related account found for login', 404));
   }
-  
+
   req.user = user;
 
   next();

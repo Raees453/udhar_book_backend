@@ -25,22 +25,24 @@ model User {
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
   contacts            Contact[]
-  Transaction         Transaction[]
+  transactions        Transaction[]
 }
 
 model Contact {
-  id          String        @id @default(uuid())
-  name        String
-  bio         String?
-  email       String?
-  phone       String?
-  amount      Int           @default(0)
-  profile     String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  User        User          @relation(fields: [ownerId], references: [id])
-  ownerId     String
-  Transaction Transaction[]
+  id           String        @id @default(uuid())
+  name         String
+  bio          String?
+  email        String?       @unique
+  phone        String?       @unique
+  amount       Int           @default(0)
+  profile      String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  User         User          @relation(fields: [ownerId], references: [id])
+  ownerId      String
+  transactions Transaction[]
+
+  @@index([ownerId])
 }
 
 model Transaction {
@@ -54,4 +56,6 @@ model Transaction {
   ownerId     String
   tenant      Contact  @relation(fields: [tenantId], references: [id])
   tenantId    String
+
+  @@index([ownerId, tenantId])
 }
