@@ -63,16 +63,12 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
     tenantId: id,
   };
 
-  console.log('Forward is been called', data);
-
   const transaction = await createTransaction(data);
 
   if (contact) {
     data.amount *= -1;
     data.tenantId = data.ownerId;
     data.ownerId = user.id;
-
-    console.log('Reverse is been called', data);
 
     const reverseTransaction = await createTransaction(data);
   }
@@ -95,7 +91,63 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
   });
 });
 
-exports.editTransaction = asyncHandler(async (req, res, next) => {});
+exports.editTransaction = asyncHandler(async (req, res, next) => {
+  const { user, transaction, attachedTransaction } = req;
+
+  const { amount, description, attachment } = req.body;
+
+  if (amount) {
+    transaction.amount = amount;
+    if (attachedTransaction) {
+      attachedTransaction.amount = amount * -1;
+    }
+  }
+
+  if (description) {
+    transaction.description = description;
+    if (attachedTransaction) {
+      attachedTransaction.description = description;
+    }
+  }
+
+  if (attachment) {
+    transaction.attachment = attachment;
+    if (attachedTransaction) {
+      attachedTransaction.attachment = attachment;
+    }
+  }
+
+  let newTransaction, newAttachedTransaction;
+
+  newTransaction = await prisma.transaction.update({
+    where: { id: transaction.id },
+    data: transaction,
+  });
+
+  if (attachedTransaction) {
+    newAttachedTransaction = await prisma.transaction.update({
+      where: { id: attachedTransaction.id },
+      data: attachedTransaction,
+    });
+  }
+
+  const isTransactionSuccessful = validateSuccessfulTransactions(
+    req,
+    newTransaction,
+    attachedTransaction,
+  );
+
+  if (!isTransactionSuccessful) {
+    await deleteTransactions(newTransaction, newAttachedTransaction);
+
+    return next(new Exception('Some error occurred.', 400));
+  }
+
+  return res.status(200).json({
+    status: true,
+    data: newTransaction,
+  });
+});
 
 exports.deleteTransaction = asyncHandler(async (req, res, next) => {
   const user = req.user;
@@ -104,25 +156,55 @@ exports.deleteTransaction = asyncHandler(async (req, res, next) => {
 
   if (!id) return next(new Exception('Please provide id', 403));
 
-  const transaction = await prisma.transaction.findUnique({ where: { id } });
-
-  if (!transaction) {
-    return next(new Exception('No Transaction Found', 404));
-  }
-
-  if (transaction.ownerId !== user.id) {
-    return next(
-      new Exception('You are not authorised to delete this transaction', 403),
-    );
-  }
-
-  const deletedTransaction = await prisma.transaction.delete({
-    where: { id },
-  });
-
   return res.status(204).json({
     success: true,
   });
 });
 
+exports.attachTransactions = asyncHandler(async (req, res, next) => {
+  const { id } = req.body;
+
+  const transaction = await prisma.transaction.findUnique({ where: { id } });
+
+  if (!transaction) {
+    return next(new Exception('No Transaction found for the id provided'));
+  }
+
+  const attachedTransaction = await prisma.transaction.findFirst({
+    where: { parentId: transaction.id },
+  });
+
+  if (attachedTransaction) {
+    req.attachedTransaction = attachedTransaction;
+  }
+
+  req.transaction = transaction;
+
+  return next();
+});
+
 const createTransaction = (data) => prisma.transaction.create({ data });
+
+const validateSuccessfulTransactions = (
+  req,
+  actualTransaction,
+  copyTransaction,
+) => {
+  const isLocalTransaction = req.attachedTransaction === null;
+
+  if (isLocalTransaction) {
+    return actualTransaction !== null;
+  }
+
+  return (
+    actualTransaction !== null &&
+    copyTransaction !== null &&
+    copyTransaction?.parentId === actualTransaction.id
+  );
+};
+
+const deleteTransactions = async (actualTransaction, copyTransaction) => {
+  return prisma.transaction.delete({
+    where: { id: actualTransaction.id },
+  });
+};

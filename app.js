@@ -7,7 +7,6 @@ const { PrismaClient } = require('@prisma/client');
 
 // LIST of things to learn
 // TODO 1. Learn about Prisma Middlewares
-// TODO 2.
 
 // List of TODOs
 // TODO Define Debug, Development Configurations if needed

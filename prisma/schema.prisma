@@ -46,16 +46,19 @@ model Contact {
 }
 
 model Transaction {
-  id          String   @id @default(uuid())
+  id          String        @id @default(uuid())
   description String?
   amount      Int
   attachment  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  owner       User     @relation(fields: [ownerId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  owner       User          @relation(fields: [ownerId], references: [id])
   ownerId     String
-  tenant      Contact  @relation(fields: [tenantId], references: [id])
+  tenant      Contact       @relation(fields: [tenantId], references: [id])
   tenantId    String
+  parent      Transaction?  @relation("ChildTransactions", fields: [parentId], references: [id])
+  parentId    String?
+  children    Transaction[] @relation("ChildTransactions")
 
   @@index([ownerId, tenantId])
 }

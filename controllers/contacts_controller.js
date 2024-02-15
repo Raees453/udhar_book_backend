@@ -28,8 +28,6 @@ exports.addContact = asyncHandler(async (req, res, next) => {
     return next(new Exception('Please provide name', 403));
   }
 
-  console.log('Check for Local Account', contact);
-
   let data = {
     name,
     bio,
@@ -39,9 +37,7 @@ exports.addContact = asyncHandler(async (req, res, next) => {
     ownerId: user.id,
   };
 
-  console.log('Data', data);
-
-  let newContact;
+  let newContact, newAttachedContact;
 
   if (!contact) {
     newContact = await createContact(data);
@@ -62,7 +58,23 @@ exports.addContact = asyncHandler(async (req, res, next) => {
 
     console.log('New Data', data);
 
-    const tenantContact = await createContact(data);
+    newAttachedContact = await createContact(data);
+  }
+
+  let isTransactionSuccessful = true;
+
+  if (contact) {
+    isTransactionSuccessful = newContact && newAttachedContact;
+  }
+
+  if (!isTransactionSuccessful) {
+    prisma.transaction.delete({
+      where: {
+        OR: [{ id: newContact.id }, { id: newAttachedContact.id }],
+      },
+    });
+
+    return next(new Exception('Transaction could not be made successful'));
   }
 
   return res.status(200).json({

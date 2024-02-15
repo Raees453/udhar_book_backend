@@ -15,7 +15,13 @@ router
   .route('/')
   .get(transactionController.getTransactions)
   .post(transactionController.createTransaction)
-  .patch(transactionController.editTransaction)
-  .delete(transactionController.deleteTransaction);
+  .patch(
+    transactionController.attachTransactions,
+    transactionController.editTransaction,
+  )
+  .delete(
+    transactionController.attachTransactions,
+    transactionController.deleteTransaction,
+  );
 
 module.exports = router;
