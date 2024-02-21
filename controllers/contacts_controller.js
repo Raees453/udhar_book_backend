@@ -133,8 +133,7 @@ exports.checkForLocalContact = asyncHandler(async (req, res, next) => {
       ].filter(Boolean),
     },
   });
-
-  console.log('Local Contact', req.contact);
+  
   next();
 });
 

@@ -50,15 +50,19 @@ model Transaction {
   description String?
   amount      Int
   attachment  String?
+  date        DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   owner       User          @relation(fields: [ownerId], references: [id])
   ownerId     String
   tenant      Contact       @relation(fields: [tenantId], references: [id])
   tenantId    String
-  parent      Transaction?  @relation("ChildTransactions", fields: [parentId], references: [id])
+  parent      Transaction?  @relation("Parent Transaction", fields: [parentId], references: [id])
   parentId    String?
-  children    Transaction[] @relation("ChildTransactions")
+  parents     Transaction[] @relation("Parent Transaction")
+  child       Transaction?  @relation("Child Transaction", fields: [childId], references: [id])
+  childId     String?
+  children    Transaction[] @relation("Child Transaction")
 
   @@index([ownerId, tenantId])
 }

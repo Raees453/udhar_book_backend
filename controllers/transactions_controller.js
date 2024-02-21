@@ -13,31 +13,15 @@ exports.getTransactions = asyncHandler(async (req, res, next) => {
 
   if (!id) return next(new Exception('Please provide id', 403));
 
-  console.log('User id', user.id, 'Id', id);
-
   const transactions = await prisma.transaction.findMany({
-    where: {
-      OR: [
-        { ownerId: user.id, tenantId: id },
-        { ownerId: id, tenantId: user.id },
-      ],
-    },
+    where: { ownerId: user.id, tenantId: id },
   });
 
-  const amountttt = await prisma.transaction.aggregate({
-    where: {
-      ownerId: { equals: user.id },
-      tenantId: { equals: id },
-    },
-
-    _sum: {
-      amount: true,
-    },
-  });
+  const amount = await gatherAmount({ ownerId: user.id, tenantId: id });
 
   return res.status(200).json({
     status: true,
-    amount: amountttt,
+    amount,
     data: transactions,
   });
 });
@@ -45,10 +29,12 @@ exports.getTransactions = asyncHandler(async (req, res, next) => {
 exports.createTransaction = asyncHandler(async (req, res, next) => {
   const { user, contact } = req;
 
+  console.log('Contact', contact);
+
   let { id, amount, description, date, attachment } = req.body;
 
   if (!id) {
-    return next(new Exception('Please provide id', 403));
+    return next(new Exception('Please provide contact id', 403));
   }
 
   if (!amount) {
@@ -63,101 +49,104 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
     tenantId: id,
   };
 
-  const transaction = await createTransaction(data);
+  let transaction = await createTransaction(data);
 
   if (contact) {
     data.amount *= -1;
-    data.tenantId = data.ownerId;
-    data.ownerId = user.id;
+    data.tenantId = user.id;
+    data.ownerId = id;
+    data.parentId = transaction.id;
 
+    console.log('Reverse Amount', data.amount);
     const reverseTransaction = await createTransaction(data);
+
+    transaction.childId = reverseTransaction.id;
+
+    await prisma.transaction.update({
+      where: { id: transaction.id },
+      data: transaction,
+    });
   }
 
-  const amountttt = await prisma.transaction.aggregate({
-    where: {
-      ownerId: { equals: user.id },
-      tenantId: { equals: id },
-    },
-
-    _sum: {
-      amount: true,
-    },
-  });
+  const totalAmount = await gatherAmount({ ownerId: user.id, tenantId: id });
 
   return res.status(200).json({
-    amount: amountttt,
     status: true,
+    amount: totalAmount,
     data: transaction,
   });
 });
 
 exports.editTransaction = asyncHandler(async (req, res, next) => {
-  const { user, transaction, attachedTransaction } = req;
+  let { user, transaction, attachedTransaction } = req;
 
-  const { amount, description, attachment } = req.body;
+  const { amount, description, attachment, date, id } = req.body;
 
-  if (amount) {
-    transaction.amount = amount;
-    if (attachedTransaction) {
-      attachedTransaction.amount = amount * -1;
-    }
-  }
+  const hasAttachedTransaction = attachedTransaction !== undefined;
 
-  if (description) {
-    transaction.description = description;
-    if (attachedTransaction) {
-      attachedTransaction.description = description;
-    }
-  }
+  if (amount) transaction.amount = amount;
 
-  if (attachment) {
-    transaction.attachment = attachment;
-    if (attachedTransaction) {
-      attachedTransaction.attachment = attachment;
-    }
-  }
+  if (amount && hasAttachedTransaction)
+    attachedTransaction.amount = amount * -1;
 
-  let newTransaction, newAttachedTransaction;
+  if (description) transaction.description = description;
 
-  newTransaction = await prisma.transaction.update({
+  if (description && hasAttachedTransaction)
+    attachedTransaction.description = description;
+
+  if (attachment) transaction.attachment = attachment;
+
+  if (attachment && hasAttachedTransaction)
+    attachedTransaction.attachment = attachment;
+
+  transaction = await prisma.transaction.update({
     where: { id: transaction.id },
     data: transaction,
   });
 
-  if (attachedTransaction) {
-    newAttachedTransaction = await prisma.transaction.update({
+  if (hasAttachedTransaction) {
+    attachedTransaction = await prisma.transaction.update({
       where: { id: attachedTransaction.id },
       data: attachedTransaction,
     });
   }
 
-  const isTransactionSuccessful = validateSuccessfulTransactions(
-    req,
-    newTransaction,
-    attachedTransaction,
-  );
-
-  if (!isTransactionSuccessful) {
-    await deleteTransactions(newTransaction, newAttachedTransaction);
-
-    return next(new Exception('Some error occurred.', 400));
-  }
+  const totalAmount = await gatherAmount({ ownerId: user.id, tenantId: id });
 
   return res.status(200).json({
     status: true,
-    data: newTransaction,
+    amount: totalAmount,
+    data: transaction,
   });
 });
 
 exports.deleteTransaction = asyncHandler(async (req, res, next) => {
-  const user = req.user;
+  let { user } = req;
 
   let { id } = req.body;
 
   if (!id) return next(new Exception('Please provide id', 403));
 
-  return res.status(204).json({
-    success: true,
+  const transaction = await deleteTransaction({ where: { id } });
+
+  if (!transaction) {
+    return next(new Exception('No Transaction Found', 404));
+  }
+
+  if (transaction.childId) {
+    await deleteTransaction({ where: { id: transaction.childId } });
+  } else if (transaction.parentId) {
+    await deleteTransaction({ where: { id: transaction.parentId } });
+  }
+
+  const amount = await gatherAmount({
+    ownerId: user.id,
+    tenantId: transaction.tenantId,
+  });
+
+  return res.status(200).json({
+    status: true,
+    amount,
   });
 });
 
@@ -171,7 +160,7 @@ exports.attachTransactions = asyncHandler(async (req, res, next) => {
   }
 
   const attachedTransaction = await prisma.transaction.findFirst({
-    where: { parentId: transaction.id },
+    where: { OR: [{ parentId: transaction.id }, { childId: transaction.id }] },
   });
 
   if (attachedTransaction) {
@@ -185,26 +174,12 @@ exports.attachTransactions = asyncHandler(async (req, res, next) => {
 
 const createTransaction = (data) => prisma.transaction.create({ data });
 
-const validateSuccessfulTransactions = (
-  req,
-  actualTransaction,
-  copyTransaction,
-) => {
-  const isLocalTransaction = req.attachedTransaction === null;
+const deleteTransaction = (condition) => prisma.transaction.delete(condition);
 
-  if (isLocalTransaction) {
-    return actualTransaction !== null;
-  }
-
-  return (
-    actualTransaction !== null &&
-    copyTransaction !== null &&
-    copyTransaction?.parentId === actualTransaction.id
-  );
-};
-
-const deleteTransactions = async (actualTransaction, copyTransaction) => {
-  return prisma.transaction.delete({
-    where: { id: actualTransaction.id },
-  });
-};
+const gatherAmount = async (condition) =>
+  (
+    await prisma.transaction.aggregate({
+      _sum: { amount: true },
+      where: condition,
+    })
+  )['_sum']['amount'] ?? 0;
