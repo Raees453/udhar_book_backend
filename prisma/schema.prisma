@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String        @id @default(uuid())
+  firstName         String
+  lastName          String
+  phone             String?       @unique
+  phoneVerified     Boolean?      @default(false)
+  password          String?
+  passwordChangedAt DateTime?
+  otp               String?
+  otpCreatedAt      DateTime?
+  profile           String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deleted           Boolean       @default(false)
+  deletedAt         DateTime?
+  Contact           Contact[]
+  Transaction       Transaction[]
+}
+
+model Contact {
+  id          String        @id @default(uuid())
+  firstName   String
+  lastName    String
+  phone       String
+  profile     String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deleted     Boolean       @default(false)
+  deletedAt   DateTime?
+  owner       User          @relation(fields: [ownerId], references: [id])
+  ownerId     String
+  amount      Int           @default(0)
+  Transaction Transaction[]
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  amount      Int
+  description String?
+  owner       User     @relation(fields: [ownerId], references: [id])
+  Contact     Contact  @relation(fields: [contactId], references: [id])
+  contactId   String
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
