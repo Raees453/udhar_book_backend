@@ -31,15 +31,15 @@ prisma
     console.log('ERROR: ', error);
   });
 
-const PORT = process.env.PORT || 80;
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`Server Started at PORT: ${PORT}`);
 });
 
-app.use((req, res, next) => {
-  next(new Exception('Invalid Route Found', 404));
-});
+// app.route('*', (req, res, next) => {
+//   next(new Exception('Invalid Route Found', 404));
+// });
 
 app.use(globalErrorHandler);
 

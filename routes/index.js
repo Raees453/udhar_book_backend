@@ -5,9 +5,11 @@ const contactsRoues = require('./contacts_routes');
 const transactionRoutes = require('./transaction_routes');
 
 
-router.use('/home', (req, res)=> res.status(200).json({
-  status: 'success',
-}));
+if (process.env.ENVIRONMENT === 'production') {
+  router.route('/home').get((req, res) => res.status(200).json({
+    status: 'success',
+  }));
+}
 
 router.use('/auth', authRoues);
 
