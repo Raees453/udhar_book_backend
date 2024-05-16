@@ -5,6 +5,8 @@ const contactsController = require('../controllers/contacts_controller');
 
 const router = express.Router();
 
+router.route('/check-phone').get(contactsController.findAccountByPhone);
+
 router.use(authController.authorise);
 
 router.route('/')
@@ -13,6 +15,5 @@ router.route('/')
   .patch(contactsController.updateContact)
   .delete(contactsController.deleteContact);
 
-router.route('/find').get(contactsController.findAccountByPhone);
 
 module.exports = router;

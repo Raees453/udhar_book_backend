@@ -3,7 +3,6 @@ const util = require('util');
 
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-// const twilio = require('twilio');
 
 const { PrismaClient } = require('@prisma/client');
 
@@ -21,10 +20,10 @@ const MAX_PASSWORD_SALT_HASH = 10;
 
 exports.signUp = asyncHandler(async (req, res, next) => {
 
-  let { phone, password, confirmPassword, firstName, lastName } = req.body;
+  let { phone, password, confirmPassword } = req.body;
 
-  if (!phone || !password || !confirmPassword || !firstName || !lastName) {
-    return next(new Exception('Please provider phone, password, confirmPassword, firstName and lastName', 400));
+  if (!phone || !password || !confirmPassword) {
+    return next(new Exception('Please provider phone, password, confirmPassword.', 400));
   }
 
   if (password !== confirmPassword) {
@@ -33,17 +32,7 @@ exports.signUp = asyncHandler(async (req, res, next) => {
 
   password = await bcrypt.hash(password, MAX_PASSWORD_SALT_HASH);
 
-  const user = await prisma.user.create({
-    data: {
-      phone, password, firstName, lastName,
-    }, select: {
-      id: true, phone: true, firstName: true, lastName: true, profile: true,
-    },
-  });
-
-  res.status(201).json({
-    status: true, data: user,
-  });
+  await prisma.user.create({ data: { phone, password } });
 
   next();
 });
@@ -58,9 +47,7 @@ exports.login = asyncHandler(async (req, res, next) => {
   }
 
   const user = await prisma.user.findUnique({
-    where: {
-      phone: phone,
-    },
+    where: { phone: phone },
   });
 
   if (!user) return next(new Exception('Invalid phone number', 400));
@@ -73,6 +60,13 @@ exports.login = asyncHandler(async (req, res, next) => {
   }
 
   user.token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+
+  user.password = undefined;
+  user.passwordChangedAt = undefined;
+  user.otp = undefined;
+  user.otpCreatedAt = undefined;
+  user.deleted = undefined;
+  user.deletedAt = undefined;
 
   res.status(200).json({
     status: true, message: 'Welcome back', data: user,
@@ -159,22 +153,28 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
 
 exports.updatePassword = asyncHandler(async (req, res, next) => {
 
-  let { password, confirmPassword } = req.body;
+  let { password, newPassword, confirmNewPassword } = req.body;
 
-  if (!password || !confirmPassword) {
-    return next(new Exception('Please provider Password and Confirm Password', 400));
+  if (!password || !newPassword || !confirmNewPassword) {
+    return next(new Exception('Please provider password, newPassword & confirmNewPassword', 400));
   }
 
-  if (password !== confirmPassword) {
-    return next(new Exception('Password and Confirm Password do not match', 400));
+  if (newPassword !== confirmNewPassword) {
+    return next(new Exception('newPassword and confirmNewPassword do not match', 400));
   }
 
   let user = req.user;
 
-  password = await bcrypt.hash(password, MAX_PASSWORD_SALT_HASH);
+  console.log(password, user.password);
+
+  const isPasswordMatch = await bcrypt.compare(password, user.password);
+
+  if (!isPasswordMatch) {
+    return next(new Exception('Invalid Password entered', 400));
+  }
 
   await prisma.user.update({
-    where: { id: user.id }, data: { password, passwordChangedAt: new Date() },
+    where: { id: user.id }, data: { password: newPassword, passwordChangedAt: new Date() },
   });
 
   res.status(200).json({

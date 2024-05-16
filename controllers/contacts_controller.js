@@ -124,18 +124,21 @@ exports.findAccountByPhone = asyncHandler(async (req, res, next) => {
   const { phone } = req.body;
 
   if (!phone) {
-    return next(new Exception('Please enter some other phone number', 400));
+    return next(new Exception('No Account Found', 200));
   }
 
   const user = await prisma.user.findUnique({
     where: { phone },
   });
 
-  if (!user) return next(new Exception('No Account Found', 404));
+  const exists = user !== null;
+
+  // if (!user) return next(new Exception('No Account Found', ));
 
   res.status(200).json({
     status: true,
-    message: 'Account Already Exists with Similar Phone Number',
+    exists,
+    message: `Account ${exists ? 'Exits':'Not Found'}`,
   });
 
   next();

@@ -2,7 +2,7 @@ const router = require('express').Router();
 
 const authController = require('../controllers/auth_controller');
 
-router.route('/signup').post(authController.signUp);
+router.route('/signup').post(authController.signUp, authController.login);
 
 router.route('/login').post(authController.login);
 
