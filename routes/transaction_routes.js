@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.use(authController.authorise);
 
-router.route('/:id')
+router.route('/')
   .get(contactsController.getContactById, transactionController.getTransactions)
   .post(contactsController.getContactById, transactionController.createTransaction, transactionController.getTransactions)
   .patch(transactionController.updateTransaction, transactionController.getTransactions)

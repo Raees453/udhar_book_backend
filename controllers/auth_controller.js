@@ -192,6 +192,8 @@ exports.authorise = asyncHandler(async (req, res, next) => {
     return next(new Exception('Please login to access', 403));
   }
 
+  console.log('Token', token);
+
   token = token.replace('Bearer ', '');
 
   const result = await util.promisify(jwt.verify)(token, process.env.JWT_SECRET);
