@@ -50,8 +50,11 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
 
 exports.updateTransaction = asyncHandler(async (req, res, next) => {
   const { amount, description } = req.body;
-  const { id } = req.params;
   const { user } = req;
+
+  let { id } = req.params;
+
+  if (!id) id = req.body.id;
 
 
   if (!id) return next(new Exception('Please provide id', 400));
@@ -78,7 +81,10 @@ exports.updateTransaction = asyncHandler(async (req, res, next) => {
 
 exports.deleteTransaction = asyncHandler(async (req, res, next) => {
   const { user } = req;
-  const { id } = req.params;
+
+  let { id } = req.params;
+
+  if (!id) id = req.body.id;
 
   if (!id) return next(new Exception('Please provide id', 400));
 
@@ -87,6 +93,8 @@ exports.deleteTransaction = asyncHandler(async (req, res, next) => {
   });
 
   if (!transaction) return next(new Exception('No Transaction Found', 404));
+
+  req.contact = await prisma.contact.findUnique({ where: { id: transaction.contactId } });
 
   if (transaction.ownerId !== user.id) {
     return next(new Exception('You do not have permission to delete this transaction', 400));

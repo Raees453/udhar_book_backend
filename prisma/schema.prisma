@@ -28,8 +28,8 @@ model User {
 
 model Contact {
   id          String        @id @default(uuid())
-  firstName   String
-  lastName    String
+  firstName   String?
+  lastName    String?
   phone       String
   profile     String?
   createdAt   DateTime      @default(now())

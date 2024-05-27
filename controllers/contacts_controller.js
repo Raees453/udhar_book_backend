@@ -9,7 +9,7 @@ exports.getContacts = asyncHandler(async (req, res, next) => {
   const user = req.user;
 
   const contacts = await prisma.contact.findMany({
-    where: { ownerId: user.id , deleted: false},
+    where: { ownerId: user.id, deleted: false },
   });
 
   res.status(200).json({
@@ -41,13 +41,24 @@ exports.addContact = asyncHandler(async (req, res, next) => {
     contact = await prisma.contact.create({
       data: {
         id: existingUser.id,
-        firstName: existingUser.firstName,
-        lastName: existingUser.lastName,
-        profile: existingUser.profile,
         ownerId: user.id,
+        firstName,
+        lastName,
+        profile,
         phone,
       },
     });
+
+    const data = {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profile: user.profile,
+      ownerId: existingUser.id,
+      phone: user.phone,
+    };
+
+    console.log('Data', data);
 
     await prisma.contact.create({
       data: {
@@ -107,10 +118,7 @@ exports.deleteContact = asyncHandler(async (req, res, next) => {
 
   if (!contact) return next(new Exception('No Contact Found', 404));
 
-  await prisma.contact.update({
-    where: { id },
-    data: { deleted: true, detetedAt: new Date() },
-  });
+  await prisma.contact.delete({ where: { id } });
 
   res.status(204).json({
     status: true,
@@ -138,7 +146,7 @@ exports.findAccountByPhone = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     status: true,
     exists,
-    message: `Account ${exists ? 'Exits':'Not Found'}`,
+    message: `Account ${exists ? 'Exits' : 'Not Found'}`,
   });
 
   next();
