@@ -165,8 +165,6 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
 
   let user = req.user;
 
-  console.log(password, user.password);
-
   const isPasswordMatch = await bcrypt.compare(password, user.password);
 
   if (!isPasswordMatch) {

@@ -44,3 +44,8 @@ app.listen(PORT, () => {
 app.use(globalErrorHandler);
 
 process.on('SIGINT', utils.disconnectFromPrismaOnShutdown);
+
+
+
+// TODO 1. Before Creating a new Contact, check if the same contact already exists or not
+// TODO 2.

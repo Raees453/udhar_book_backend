@@ -49,17 +49,6 @@ exports.addContact = asyncHandler(async (req, res, next) => {
       },
     });
 
-    const data = {
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      profile: user.profile,
-      ownerId: existingUser.id,
-      phone: user.phone,
-    };
-
-    console.log('Data', data);
-
     await prisma.contact.create({
       data: {
         id: user.id,
@@ -114,7 +103,6 @@ exports.deleteContact = asyncHandler(async (req, res, next) => {
 
   if (!id) return next(new Exception('Please provide id', 400));
 
-  const contact = await prisma.contact.findUnique({ where: { id } });
 
   if (!contact) return next(new Exception('No Contact Found', 404));
 
@@ -148,8 +136,6 @@ exports.findAccountByPhone = asyncHandler(async (req, res, next) => {
     exists,
     message: `Account ${exists ? 'Exits' : 'Not Found'}`,
   });
-
-  next();
 });
 
 exports.getContactById = asyncHandler(async (req, res, next) => {
