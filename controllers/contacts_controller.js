@@ -99,10 +99,11 @@ exports.updateContact = asyncHandler(async (req, res, next) => {
 
 
 exports.deleteContact = asyncHandler(async (req, res, next) => {
-  const { firstName, lastName, profile, id } = req.body;
+  const { id } = req.body;
 
   if (!id) return next(new Exception('Please provide id', 400));
 
+  let contact = await prisma.contact.findUnique({ where: { id } });
 
   if (!contact) return next(new Exception('No Contact Found', 404));
 
