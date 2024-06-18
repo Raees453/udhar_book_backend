@@ -6,7 +6,7 @@ const Exception = require('../utils/exception');
 const prisma = new PrismaClient();
 
 exports.getTransactions = asyncHandler(async (req, res, next) => {
-  const { user, contact } = req;
+  const { user, contact, updateContact } = req;
 
   let transactions = await prisma.transaction.findMany({
     where: {
@@ -33,6 +33,24 @@ exports.getTransactions = asyncHandler(async (req, res, next) => {
     data: transactions,
   });
 
+  if (updateContact) {
+    await prisma.contact.update({
+      where: { id: contact.id, ownerId: user.id },
+      data: { amount: total },
+    });
+
+    const contactUser = await prisma.user.findUnique({
+      where: { id: contact.id },
+    });
+
+    if (contactUser) {
+      await prisma.contact.update({
+        where: { id: user.id, ownerId: contact.id },
+        data: { amount: total * -1 },
+      });
+    }
+  }
+
   next();
 });
 
@@ -44,6 +62,8 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
   await prisma.transaction.create({
     data: { amount, ownerId: user.id, contactId: contact.id, description },
   });
+
+  req.updateContact = true;
 
   next();
 });
@@ -76,6 +96,8 @@ exports.updateTransaction = asyncHandler(async (req, res, next) => {
     data: { amount, description },
   });
 
+  req.updateContact = true;
+
   next();
 });
 
@@ -101,6 +123,8 @@ exports.deleteTransaction = asyncHandler(async (req, res, next) => {
   }
 
   await prisma.transaction.delete({ where: { id } });
+
+  req.updateContact = true;
 
   next();
 });
