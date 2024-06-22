@@ -10,6 +10,9 @@ exports.getContacts = asyncHandler(async (req, res, next) => {
 
   const contacts = await prisma.contact.findMany({
     where: { ownerId: user.id, deleted: false },
+    orderBy: [
+      { updatedAt: 'desc' },
+    ],
   });
 
   res.status(200).json({
@@ -52,9 +55,9 @@ exports.addContact = asyncHandler(async (req, res, next) => {
     await prisma.contact.create({
       data: {
         id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        profile: user.profile,
+        firstName: user.firstName ?? existingUser.firstName,
+        lastName: user.lastName ?? existingUser.lastName,
+        profile: user.profile ?? existingUser.profile,
         ownerId: existingUser.id,
         phone: user.phone,
       },
@@ -106,6 +109,15 @@ exports.deleteContact = asyncHandler(async (req, res, next) => {
   let contact = await prisma.contact.findUnique({ where: { id } });
 
   if (!contact) return next(new Exception('No Contact Found', 404));
+
+  await prisma.transaction.deleteMany({
+    where: {
+      OR: [
+        { ownerId: id },
+        { contactId: id },
+      ],
+    },
+  });
 
   await prisma.contact.delete({ where: { id } });
 

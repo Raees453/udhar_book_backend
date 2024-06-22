@@ -15,6 +15,9 @@ exports.getTransactions = asyncHandler(async (req, res, next) => {
         { ownerId: contact.id, contactId: user.id },
       ],
     },
+    orderBy: [
+      {createdAt: 'desc'}
+    ],
   });
 
   let total = 0;
