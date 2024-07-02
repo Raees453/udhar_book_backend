@@ -3,6 +3,7 @@ const util = require('util');
 
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const admin = require('firebase-admin');
 
 const { PrismaClient } = require('@prisma/client');
 
@@ -176,7 +177,7 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
   });
 
   res.status(200).json({
-    status: true, message: 'Password updated successfully',
+    status: true, message: 'Password Updated Successfully',
   });
 
   next();
@@ -189,7 +190,7 @@ exports.authorise = asyncHandler(async (req, res, next) => {
   if (!token || !token.startsWith('Bearer ')) {
     return next(new Exception('Please login to access', 403));
   }
-  
+
   token = token.replace('Bearer ', '');
 
   const result = await util.promisify(jwt.verify)(token, process.env.JWT_SECRET);
@@ -198,7 +199,7 @@ exports.authorise = asyncHandler(async (req, res, next) => {
     where: { id: result.id },
   });
 
-  if (!user) return next(new Exception('No User Exists', 400));
+  if (!user) return next(new Exception('No User Exists', 403));
 
   req.user = user;
 
@@ -207,22 +208,31 @@ exports.authorise = asyncHandler(async (req, res, next) => {
 
 
 exports.deleteAccount = asyncHandler(async (req, res, next) => {
-
+  const { phone, password } = req.body;
   const user = req.user;
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { deleted: true },
-  });
+  if (!phone || !password) {
+    return next(new Exception('Please provide phone number and password', 400));
+  }
 
-  res.status(204).json({
+  if (!user) return next(new Exception('Invalid phone number', 400));
+
+  // the non-encrypted one has to be the first input
+  const isPasswordMatch = await bcrypt.compare(password, user.password);
+
+  if (!isPasswordMatch) {
+    return next(new Exception('Invalid Password Provided', 400));
+  }
+
+  await prisma.user.update({ where: { id: user.id }, data: { deleted: true , deletedAt: new Date()} });
+
+  res.status(200).json({
     status: true,
     message: 'Account Deleted Successfully',
   });
 
   next();
 });
-
 
 exports.updateAccount = asyncHandler(async (req, res, next) => {
 
@@ -238,6 +248,22 @@ exports.updateAccount = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     status: true,
     message: 'Account Updated Successfully',
+  });
+
+  next();
+});
+
+exports.updateFCMToken = asyncHandler(async (req, res, next) => {
+
+  const user = req.user;
+
+  const { fcmToken } = req.body;
+
+  await prisma.user.update({ where: { id: user.id }, data: { fcmToken } });
+
+  res.status(200).json({
+    status: true,
+    message: 'FCM Token Updated Successfully',
   });
 
   next();

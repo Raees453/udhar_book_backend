@@ -22,24 +22,26 @@ model User {
   updatedAt         DateTime      @updatedAt
   deleted           Boolean       @default(false)
   deletedAt         DateTime?
+  fcmToken          String?
   Contact           Contact[]
   Transaction       Transaction[]
 }
 
 model Contact {
-  id          String        @id @default(uuid())
-  firstName   String?
-  lastName    String?
-  phone       String
-  profile     String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  deleted     Boolean       @default(false)
-  deletedAt   DateTime?
-  owner       User          @relation(fields: [ownerId], references: [id])
-  ownerId     String
-  amount      Int           @default(0)
-  Transaction Transaction[]
+  id           String         @id @default(uuid())
+  firstName    String?
+  lastName     String?
+  phone        String
+  profile      String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  deleted      Boolean        @default(false)
+  deletedAt    DateTime?
+  owner        User           @relation(fields: [ownerId], references: [id])
+  ownerId      String
+  amount       Int            @default(0)
+  Transaction  Transaction[]
+  Notification Notification[]
 }
 
 model Transaction {
@@ -52,4 +54,11 @@ model Transaction {
   ownerId     String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  subject   String
+  createdAt DateTime @default(now())
+  owner     Contact  @relation(fields: [id], references: [id])
 }

@@ -12,10 +12,10 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@prisma/client": "^5.13.0",
+    "@prisma/client": "^5.16.1",
     "nodemon": "^3.1.0",
     "prettier": "^3.2.5",
-    "prisma": "^5.13.0"
+    "prisma": "^5.16.1"
   },
   "dependencies": {
     "-": "^0.0.1",
@@ -23,7 +23,7 @@
     "body-parser": "^1.20.2",
     "express": "^4.19.2",
     "firebase": "^10.11.1",
-    "firebase-admin": "^12.1.0",
+    "firebase-admin": "^12.2.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
