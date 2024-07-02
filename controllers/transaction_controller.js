@@ -67,6 +67,18 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
   });
 
   req.updateContact = true;
+req.subject = `${user.firstName} Created a transaction of amount ${amount}`;
+req.reason = 'Transaction Created';
+req.transaction = prisma.notification.create({
+  data: {
+    userId: contact.id,
+    type: 'transaction',
+    title: 'New Transaction',
+    description: `${user.name} sent you ${amount}`,
+  },
+});
+
+
 
   next();
 });
