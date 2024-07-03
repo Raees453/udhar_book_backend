@@ -16,7 +16,7 @@ exports.getTransactions = asyncHandler(async (req, res, next) => {
       ],
     },
     orderBy: [
-      {createdAt: 'desc'}
+      { createdAt: 'desc' },
     ],
   });
 
@@ -62,23 +62,29 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
   const { user, contact } = req;
   const { amount, description } = req.body;
 
-  await prisma.transaction.create({
+  const transaction = await prisma.transaction.create({
     data: { amount, ownerId: user.id, contactId: contact.id, description },
   });
 
   req.updateContact = true;
-req.subject = `${user.firstName} Created a transaction of amount ${amount}`;
-req.reason = 'Transaction Created';
-req.transaction = prisma.notification.create({
-  data: {
-    userId: contact.id,
-    type: 'transaction',
-    title: 'New Transaction',
-    description: `${user.name} sent you ${amount}`,
-  },
-});
+  req.subject = `${user.firstName} Created a transaction of amount ${amount}`;
+  req.reason = 'Transaction Created';
+  req.transaction = prisma.notification.create({
+    data: {
+      userId: contact.id,
+      type: 'transaction',
+      title: 'New Transaction',
+      description: `${user.name} sent you ${amount}`,
+    },
+  });
 
-
+  // data to be sent to the frontend for Notifications
+  req.body.fcmToken = user.fcmToken;
+  req.body.fcmTokenData = transaction;
+  req.body.notification = {
+    title: `${user.firstName} ${user.lastName} Create New Transaction`,
+    body: 'Hello World, I am just exploring stuff',
+  };
 
   next();
 });
