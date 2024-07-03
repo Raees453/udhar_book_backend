@@ -25,6 +25,7 @@ model User {
   fcmToken          String?
   Contact           Contact[]
   Transaction       Transaction[]
+  Notification Notification[]
 }
 
 model Contact {
@@ -41,7 +42,6 @@ model Contact {
   ownerId      String
   amount       Int            @default(0)
   Transaction  Transaction[]
-  Notification Notification[]
 }
 
 model Transaction {
@@ -59,6 +59,8 @@ model Transaction {
 model Notification {
   id        String   @id @default(uuid())
   subject   String
+  reason    String
+  data      Json
   createdAt DateTime @default(now())
-  owner     Contact  @relation(fields: [id], references: [id])
+  owner     User  @relation(fields: [id], references: [id])
 }
