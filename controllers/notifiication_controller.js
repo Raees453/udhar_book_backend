@@ -7,10 +7,19 @@ const Exception = require('../utils/exception');
 const prisma = new PrismaClient();
 
 exports.sendNotification = asyncHandler(async (req, res, next) => {
-  const { fcmToken , fcmTokenData, notification} = req.body;
+  const { fcmToken, fcmTokenData, notification } = req.body;
+
+  if(!(fcmToken && fcmTokenData && notification)) return next();
+
+  console.log('Token', fcmToken);
+  console.log('Body', fcmTokenData);
+  console.log('Notification', notification);
 
   try {
-    await admin.messaging().send({ token: fcmToken, data: fcmTokenData , notification});
+    const response = await admin.messaging().send({ token: fcmToken, data: fcmTokenData, notification });
+
+    console.log(response);
+
   } catch (e) {
     // TODO Research on it and figure out the common issues to optimise the catch block
     // await admin.messaging().send({ token: fcmToken, data: fcmTokenData });

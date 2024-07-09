@@ -69,22 +69,30 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
   req.updateContact = true;
   req.subject = `${user.firstName} Created a transaction of amount ${amount}`;
   req.reason = 'Transaction Created';
-  req.transaction = prisma.notification.create({
+  req.transaction = await prisma.notification.create({
     data: {
       userId: contact.id,
-      type: 'transaction',
-      title: 'New Transaction',
-      description: `${user.name} sent you ${amount}`,
+      subject: 'Transaction Created',
+      reason: 'Created',
+      data: JSON.stringify(`${user.name} sent you ${amount}`),
     },
   });
 
+  const cUser = await prisma.user.findUnique({
+    where: { id: contact.id },
+  });
+
+
+  if (!cUser) return next();
+
   // data to be sent to the frontend for Notifications
-  req.body.fcmToken = user.fcmToken;
-  req.body.fcmTokenData = transaction;
+  req.body.fcmToken = cUser.fcmToken;
+  req.body.fcmTokenData = { title: 'Hello World', body: 'Hel' };
   req.body.notification = {
-    title: `${user.firstName} ${user.lastName} Create New Transaction`,
-    body: 'Hello World, I am just exploring stuff',
+    title: `${user.firstName} ${user.lastName} Created New Transaction`,
+    body: description,
   };
+
 
   next();
 });
