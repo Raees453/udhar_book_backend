@@ -59,8 +59,8 @@ model Transaction {
 
 model Notification {
   id        String   @id @default(uuid())
-  subject   String
-  reason    String
+  title     String
+  subTitle  String
   data      Json
   userId    String
   read      Boolean  @default(false)

@@ -72,8 +72,8 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
   req.transaction = await prisma.notification.create({
     data: {
       userId: contact.id,
-      subject: 'Transaction Created',
-      reason: 'Created',
+      title: 'Transaction Created',
+      subTitle: `${user.firstName} ${user.lastName} Created New Transaction`,
       data: JSON.stringify(`${user.name} sent you ${amount}`),
     },
   });
@@ -87,12 +87,16 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
 
   // data to be sent to the frontend for Notifications
   req.body.fcmToken = cUser.fcmToken;
-  req.body.fcmTokenData = { title: 'Hello World', body: 'Hel' };
-  req.body.notification = {
-    title: `${user.firstName} ${user.lastName} Created New Transaction`,
-    body: description,
+  req.body.fcmTokenData = {
+    title: 'Transaction Created', body: JSON.stringify({
+      transaction: transaction,
+      contact: contact,
+    },)
   };
-
+  req.body.notification = {
+    title: `Transaction Created - ${user.firstName} ${user.lastName}`,
+    body: `Created New Transaction of amount Rs.${Math.abs(amount)}`,
+  };
 
   next();
 });
