@@ -40,8 +40,6 @@ exports.addNotification = asyncHandler(async (req, res, next) => {
 
   let data;
 
-  'Someone added you in their contacts';
-
   if (transaction) {
     data = JSON.stringify({ sender: user, receiver: contact });
   } else {
@@ -55,7 +53,7 @@ exports.addNotification = asyncHandler(async (req, res, next) => {
   }
 
   await prisma.notification.create({
-    data: { subject, reason, data, userId: user.id },
+    data: { title: subject, subTitle: reason, data, userId: contact.id },
   });
 
   req.subject = undefined;
@@ -106,7 +104,7 @@ exports.markNotificationAsRead = asyncHandler(async (req, res, next) => {
   const { ids } = req.body;
 
   for (const id of ids) {
-    await prisma.notification.update({ where: { id }, data: { read: true } });
+    await prisma.notification.updateMany({ where: { id }, data: { read: true , readAt: new Date()} });
   }
 
   res.status(200).json({ status: true, message: 'Messages marked successfully' });

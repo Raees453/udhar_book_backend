@@ -21,7 +21,7 @@ const MAX_PASSWORD_SALT_HASH = 10;
 
 exports.signUp = asyncHandler(async (req, res, next) => {
 
-  let { phone, password, confirmPassword } = req.body;
+  let { phone, password, confirmPassword, firstName, lastName } = req.body;
 
   if (!phone || !password || !confirmPassword) {
     return next(new Exception('Please provider phone, password, confirmPassword.', 400));
@@ -33,7 +33,7 @@ exports.signUp = asyncHandler(async (req, res, next) => {
 
   password = await bcrypt.hash(password, MAX_PASSWORD_SALT_HASH);
 
-  await prisma.user.create({ data: { phone, password } });
+  await prisma.user.create({ data: { phone, password , firstName, lastName} });
 
   next();
 });
@@ -200,6 +200,13 @@ exports.authorise = asyncHandler(async (req, res, next) => {
   });
 
   if (!user) return next(new Exception('No User Exists', 403));
+
+  user.password = undefined;
+  user.passwordChangedAt = undefined;
+  user.otp = undefined;
+  user.otpCreatedAt = undefined;
+  user.deleted = undefined;
+  user.deletedAt = undefined;
 
   req.user = user;
 

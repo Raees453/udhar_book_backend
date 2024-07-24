@@ -52,10 +52,9 @@ app.use(globalErrorHandler);
 
 process.on('SIGINT', utils.disconnectFromPrismaOnShutdown);
 
-
-// brew services start postgresql
-// brew services stop postgresql
-// brew services restart postgresql
-
-// TODO 1. Before Creating a new Contact, check if the same contact already exists or not
-// TODO 2.
+/*
+  TODO Try to have a common middleware which will be used to figure out if
+   the contact is a user or not, if it is, attach it to req object as `contactUser`
+ */
+// TODO Write basic code documentation for it
+// TODO Shift all the notification code from create transaction function to it's dedicated controller

@@ -58,12 +58,13 @@ model Transaction {
 }
 
 model Notification {
-  id        String   @id @default(uuid())
+  id        Int       @id @default(autoincrement())
   title     String
   subTitle  String
   data      Json
   userId    String
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-  owner     User     @relation(fields: [userId], references: [id])
+  read      Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  owner     User      @relation(fields: [userId], references: [id])
 }

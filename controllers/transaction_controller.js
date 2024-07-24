@@ -66,6 +66,12 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
     data: { amount, ownerId: user.id, contactId: contact.id, description },
   });
 
+  const cUser = await prisma.user.findUnique({
+    where: { id: contact.id },
+  });
+
+  if (!cUser) return next();
+
   req.updateContact = true;
   req.subject = `${user.firstName} Created a transaction of amount ${amount}`;
   req.reason = 'Transaction Created';
@@ -74,16 +80,14 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
       userId: contact.id,
       title: 'Transaction Created',
       subTitle: `${user.firstName} ${user.lastName} Created New Transaction`,
-      data: JSON.stringify(`${user.name} sent you ${amount}`),
+      data: JSON.stringify({
+        'transactionId': transaction.id,
+        'contactId': user.id,
+        'amount': amount,
+      }),
     },
   });
 
-  const cUser = await prisma.user.findUnique({
-    where: { id: contact.id },
-  });
-
-
-  if (!cUser) return next();
 
   // data to be sent to the frontend for Notifications
   req.body.fcmToken = cUser.fcmToken;
