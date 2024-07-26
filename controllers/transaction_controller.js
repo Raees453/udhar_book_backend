@@ -73,13 +73,13 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
   if (!cUser) return next();
 
   req.updateContact = true;
-  req.subject = `${user.firstName} Created a transaction of amount ${amount}`;
+  req.subject = `${user.firstName} Created a transaction of Rs. ${amount}`;
   req.reason = 'Transaction Created';
   req.transaction = await prisma.notification.create({
     data: {
       userId: contact.id,
-      title: 'Transaction Created',
-      subTitle: `${user.firstName} ${user.lastName} Created New Transaction`,
+      title: 'A new transaction created',
+      subTitle: `${user.firstName} Created a transaction of Rs. ${amount}`,
       data: JSON.stringify({
         'transactionId': transaction.id,
         'contactId': user.id,
@@ -95,11 +95,11 @@ exports.createTransaction = asyncHandler(async (req, res, next) => {
     title: 'Transaction Created', body: JSON.stringify({
       transaction: transaction,
       contact: contact,
-    },)
+    })
   };
   req.body.notification = {
     title: `Transaction Created - ${user.firstName} ${user.lastName}`,
-    body: `Created New Transaction of amount Rs.${Math.abs(amount)}`,
+    body: `Created New Transaction of Rs.${Math.abs(amount)}`,
   };
 
   next();

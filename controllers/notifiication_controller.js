@@ -11,9 +11,9 @@ exports.sendNotification = asyncHandler(async (req, res, next) => {
 
   if(!(fcmToken && fcmTokenData && notification)) return next();
 
-  console.log('Token', fcmToken);
-  console.log('Body', fcmTokenData);
-  console.log('Notification', notification);
+  // console.log('Token', fcmToken);
+  // console.log('Body', fcmTokenData);
+  // console.log('Notification', notification);
 
   try {
     const response = await admin.messaging().send({ token: fcmToken, data: fcmTokenData, notification });
@@ -68,6 +68,7 @@ exports.getNotifiications = asyncHandler(async (req, res, next) => {
 
   const notifications = await prisma.notification.findMany({
     where: { userId: user.id },
+    orderBy: { createdAt: 'desc' },
   });
 
   notifications.forEach((e) => e.data = JSON.parse(e.data));

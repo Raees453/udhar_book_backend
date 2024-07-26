@@ -121,7 +121,7 @@ exports.deleteContact = asyncHandler(async (req, res, next) => {
 
   await prisma.contact.delete({ where: { id } });
 
-  res.status(204).json({
+  res.status(200).json({
     status: true,
     message: 'Contact Deleted Successfully',
   });
