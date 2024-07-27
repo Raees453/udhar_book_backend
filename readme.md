@@ -69,8 +69,8 @@ To get the project running locally, follow these steps:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/splitwise-clone-backend.git
-   cd meraudhar-backend
+   git clone https://github.com/Raees453/udhar_book_backend.git
+   cd udhar_book_backend
    ```
 
 2. Install dependencies:

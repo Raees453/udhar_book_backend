@@ -13,11 +13,8 @@ const asyncHandler = require('../utils/async_handler');
 
 const prisma = new PrismaClient();
 
-// const twilioClient = twilio(process.env.TEST_TWILIO_ACCOUNT_SID, process.env.TEST_TWILIO_AUTH_TOKEN, { lazyLoading: true });
-
 // TODO Refactor these constant variables to some other file
 const MAX_PASSWORD_SALT_HASH = 10;
-
 
 exports.signUp = asyncHandler(async (req, res, next) => {
 
@@ -33,7 +30,15 @@ exports.signUp = asyncHandler(async (req, res, next) => {
 
   password = await bcrypt.hash(password, MAX_PASSWORD_SALT_HASH);
 
-  await prisma.user.create({ data: { phone, password , firstName, lastName} });
+  const userCredential = await admin.auth().createUser({ phoneNumber: phone });
+  const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+  await admin.auth().setCustomUserClaims(userCredential.uid, { verificationCode, expiresIn: 300000 });
+
+  const user = await prisma.user.create({
+    data: { id: userCredential.uid, phone, password, firstName, lastName },
+  });
+
+  res.status(201).json({ status: true, message: 'Account Created Successfully', user: mapUser(user) });
 
   next();
 });
@@ -62,15 +67,8 @@ exports.login = asyncHandler(async (req, res, next) => {
 
   user.token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
 
-  user.password = undefined;
-  user.passwordChangedAt = undefined;
-  user.otp = undefined;
-  user.otpCreatedAt = undefined;
-  user.deleted = undefined;
-  user.deletedAt = undefined;
-
   res.status(200).json({
-    status: true, message: 'Welcome back', data: user,
+    status: true, message: 'Welcome back', data: mapUser(user),
   });
 
   next();
@@ -86,23 +84,23 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
     where: { phone },
   });
 
+  // const userCredential = await admin.auth().createUser({ phoneNumber: phone });
+  // const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  // await admin.auth().setCustomUserClaims(userCredential.uid, { verificationCode, expiresIn: 300000 });
+
   if (!user) return next(new Exception('No User Registered with the phone', 400));
 
-  let otp = '123456';
-  let otpCreatedAt = new Date();
-
-  otp = crypto.createHash('sha256').update(otp).digest('hex');
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
   user = await prisma.user.update({
-    where: { id: user.id }, data: { otp, otpCreatedAt },
+    where: { id: user.id }, data: { otp, otpCreatedAt: new Date() },
   });
 
-  // const otpResult = await twilioClient.verify.v2.services('VA062d09d2e36baf8012fc1111adacdd67')
-  //   .verifications
-  //   .create({ to: phone, channel: 'sms' });
+
+  console.log(`OTP for ${phone} is`, otp);
 
   res.status(200).json({
-    status: true, message: `OTP Sent successfully`, data: user,
+    status: true, message: `OTP Sent successfully`,
   });
 
   next();
@@ -201,14 +199,7 @@ exports.authorise = asyncHandler(async (req, res, next) => {
 
   if (!user) return next(new Exception('No User Exists', 403));
 
-  user.password = undefined;
-  user.passwordChangedAt = undefined;
-  user.otp = undefined;
-  user.otpCreatedAt = undefined;
-  user.deleted = undefined;
-  user.deletedAt = undefined;
-
-  req.user = user;
+  req.user = mapUser(user);
 
   next();
 });
@@ -231,11 +222,10 @@ exports.deleteAccount = asyncHandler(async (req, res, next) => {
     return next(new Exception('Invalid Password Provided', 400));
   }
 
-  await prisma.user.update({ where: { id: user.id }, data: { deleted: true , deletedAt: new Date()} });
+  await prisma.user.update({ where: { id: user.id }, data: { deleted: true, deletedAt: new Date() } });
 
   res.status(200).json({
-    status: true,
-    message: 'Account Deleted Successfully',
+    status: true, message: 'Account Deleted Successfully',
   });
 
   next();
@@ -248,13 +238,11 @@ exports.updateAccount = asyncHandler(async (req, res, next) => {
   const { firstName, lastName, profile } = req.body;
 
   await prisma.user.update({
-    where: { id: user.id },
-    data: { firstName, lastName, profile },
+    where: { id: user.id }, data: { firstName, lastName, profile },
   });
 
   res.status(200).json({
-    status: true,
-    message: 'Account Updated Successfully',
+    status: true, message: 'Account Updated Successfully',
   });
 
   next();
@@ -269,9 +257,49 @@ exports.updateFCMToken = asyncHandler(async (req, res, next) => {
   await prisma.user.update({ where: { id: user.id }, data: { fcmToken } });
 
   res.status(200).json({
-    status: true,
-    message: 'FCM Token Updated Successfully',
+    status: true, message: 'FCM Token Updated Successfully',
   });
 
   next();
 });
+
+exports.verifyOTP = asyncHandler(async (req, res, next) => {
+  const { phone, otp } = req.body;
+
+  const user = await prisma.user.findUnique({ where: { phone } });
+
+  if (!user) return next(new Exception('No User Exists', 404));
+
+  let isValidOTP = false;
+
+  if (user.otp === otp) {
+    isValidOTP = true;
+
+    await prisma.user.update({
+      where: { id: user.id, otp: null, otpCreatedAt: null },
+    });
+
+    user.token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+
+  }
+
+  res.status(200).json({
+    status: isValidOTP, message: 'Valid OTP Provided', token: isValidOTP ? user.token : undefined,
+  });
+
+  next();
+});
+
+const mapUser = (user) => {
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    phone: user.phone,
+    phoneVerified: user.phoneVerified ?? false,
+    profile: user.profile,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+    token: user.token,
+  };
+};

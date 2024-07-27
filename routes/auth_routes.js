@@ -3,13 +3,15 @@ const router = require('express').Router();
 const authController = require('../controllers/auth_controller');
 const notificationController = require('../controllers/notifiication_controller');
 
-router.route('/signup').post(authController.signUp, authController.login);
+router.route('/signup').post(authController.signUp);
 
 router.route('/login').post(authController.login);
 
 router.route('/forgot-password').post(authController.forgotPassword);
 
 router.route('/reset-password').post(authController.resetPassword);
+
+router.route('/verify').post(authController.verifyOTP);
 
 router.route('/update-password').post(authController.authorise, authController.updatePassword);
 
